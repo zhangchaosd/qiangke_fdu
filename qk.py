@@ -120,6 +120,7 @@ while True:
         search(driver=driver, first_label_xpath=xkzyk_xpath, second_label_xpath=zyxxk_xpath, table_xpath=zyxxk_table_xpath, course_names=zyxxk_ls)
     if len(ggxxk_ls) > 0:
         search(driver=driver, first_label_xpath=ggxxk_xpath, table_xpath=ggxxk_table_xpath, course_names=ggxxk_ls)
+    turn = turn + 1
 
 
 exit()
