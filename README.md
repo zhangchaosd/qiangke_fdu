@@ -9,6 +9,7 @@
 理论上来说稍加改动，可以适用于任何学校的选课系统。
 
 验证码识别使用了 ddddocr 库。
+
 成果展示：
 <img src="assets/2.jpeg" >
 <img src="assets/1.jpeg" >
