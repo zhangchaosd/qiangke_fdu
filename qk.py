@@ -1,9 +1,10 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 import time
-import multiprocessing as mp
-import threading as td
-# from PIL import Image
+import threading
+from PIL import Image
+import ddddocr
+import io
 
 xwjck_ls = [   # 学位基础课
 ]
@@ -18,9 +19,17 @@ ggxxk_ls = [   # 公共选修课
     '陶艺|陶艺',
 ]
 
+xuehao = '21210240419'
+pwd = 'zc960218fd'
+
+
+xuehao_input_xpath = '/html/body/div/article[1]/section/div[4]/div[1]/input'  # 学号输入框
+pwd_input_xpath = '/html/body/div/article[1]/section/div[4]/div[2]/input'  # 密码输入框
 yzm_input_xpath = '/html/body/div/article[1]/section/div[4]/div[3]/input'  # 验证码输入框
 yzm_xpath = '/html/body/div/article[1]/section/div[4]/div[3]/img'   # 验证码图片
-'/html/body/div/article[1]/section/div[4]/button[2]'
+login_xpath = '/html/body/div/article[1]/section/div[4]/button[2]'
+errmsg_xpath = '/html/body/div/article[1]/section/div[4]/button[1]'  # 错误信息
+
 xwggk_xpath = '/html/body/div/header/div/ul/li[1]/a'
 
 xkzyk_xpath = '/html/body/div/header/div/ul/li[2]/a'         # 学科专业课  一级目录
@@ -44,11 +53,11 @@ def tprint(*t):
     print(cur_time)
     print(*t)
 
-def safe_get_element_by_xpath(driver, xpath):
+def safe_get_element_by_xpath(driver, xpath, try_times=30):
     res = None
     fail_cnt = 0
     while(res is None):
-        if fail_cnt > 30:
+        if fail_cnt > try_times:
             break
         try:
             res = driver.find_element_by_xpath(xpath)
@@ -56,70 +65,55 @@ def safe_get_element_by_xpath(driver, xpath):
         except:
             res = None
         fail_cnt = fail_cnt + 1
+    exit()
     return False, None
 
-# def get_snap(driver):  # 对目标网页进行截屏。这里截的是全屏
-#     driver.save_screenshot('full_snap.png')
-#     page_snap_obj=Image.open('full_snap.png')
-#     return page_snap_obj
+def get_snap(driver):  # 对目标网页进行截屏。这里截的是全屏
+    driver.save_screenshot('full_snap.png')
+    page_snap_obj=Image.open('full_snap.png')
+    return page_snap_obj
  
  
-# def get_image(driver): # 对验证码所在位置进行定位，然后截取验证码图片
-#     img = driver.find_element_by_xpath(yzm_xpath)
-#     time.sleep(2)
-#     location = img.location
-#     print(location)
-#     size = img.size
-#     left = location['x']
-#     top = location['y']
-#     right = left + size['width']
-#     bottom = top + size['height']
- 
-#     page_snap_obj = get_snap(driver)
-#     image_obj = page_snap_obj.crop((left, top, right, bottom))
-#     image_obj.show()
-#     return image_obj  # 得到的就是验证
+def get_image(driver): # 对验证码所在位置进行定位，然后截取验证码图片
+    img = driver.find_element_by_xpath(yzm_xpath)
+    time.sleep(2)
+    location = img.location
+    print(location)
+    size = img.size
+    left = location['x'] * 2
+    top = location['y'] * 2
+    right = left + size['width']  * 2
+    bottom = top + size['height'] * 2
+
+    page_snap_obj = get_snap(driver)
+    image_obj = page_snap_obj.crop((left, top, right, bottom))
+    imgByteArr = io.BytesIO()
+    image_obj.save(imgByteArr, format='PNG') # format: PNG / JPEG
+    imgByteArr = imgByteArr.getvalue()
+    return imgByteArr
 
 click_interval=0.2
 
 
 def search(driver, first_label_xpath, second_label_xpath=None, table_xpath=None, course_names=None):
-    first_label = driver.find_element_by_xpath(first_label_xpath)
+    res, first_label = safe_get_element_by_xpath(driver, first_label_xpath)
+    if res is False:
+        pass  # TODO
     first_label.click()
-    time.sleep(click_interval)
+    # time.sleep(click_interval)
     if second_label_xpath is not None:
-        second_label=None
-        faile_times=0
-        while(second_label==None):
-            try:
-                second_label = driver.find_element_by_xpath(second_label_xpath) # 公共选修课
-            except:
-                tprint('try fail 1')
-                second_label=None
-                faile_times=faile_times+1
-                if faile_times > 20:
-                    driver.find_element_by_xpath(yxkc_xpath).click()
-                    time.sleep(1)
-                    faile_times=0
-                    first_label.click()
-                    time.sleep(click_interval)
+        res, second_label=safe_get_element_by_xpath(driver, second_label_xpath)
+        if res is False:
+            pass  # TODO
         second_label.click()
-        time.sleep(click_interval)
-    table=None
-    faile_times=0
-    while(table==None):
-        try:
-            table = driver.find_element_by_xpath(table_xpath)
-        except:
-            tprint('try fail 2')
-            faile_times=faile_times+1
-            if faile_times > 20:
-                return
-            table=None
+        # time.sleep(click_interval)
+    res, table=safe_get_element_by_xpath(driver, table_xpath)
+    if res is False:
+        return  # TODO
     height=1
     while height==1:
         rows=table.find_elements_by_tag_name("tr")
-        height = len(rows)
+        height = len(rows)  # TODO
     if second_label_xpath is None:  # 公共选修课课程名在第二列
         flag = 0
     else:
@@ -139,20 +133,12 @@ def search(driver, first_label_xpath, second_label_xpath=None, table_xpath=None,
                     if flag == 0:
                         xuanke_botton_xpath = xuanke_botton_xpath + '/div'
                     xuanke_botton_xpath = xuanke_botton_xpath + '/a'
-                    xuanke_botton = driver.find_element_by_xpath(xuanke_botton_xpath)
+                    _, xuanke_botton = safe_get_element_by_xpath(driver, xuanke_botton_xpath)
                     xuanke_botton.click()
-                    queding=None
-                    cnt=0
-                    while(queding==None):
-                        try:
-                            queding = driver.find_element_by_xpath(queding_xpath)
-                        except:
-                            tprint('try fail 3')
-                            queding=None
-                            cnt=cnt+1
-                        if cnt>300:
-                            tprint('可能差一点抢到，或者检查在线情况： ', name)
-                            break
+                    res, queding=safe_get_element_by_xpath(driver, queding_xpath, 300)
+                    if res is False:
+                        tprint('可能差一点抢到，或者检查在线情况： ', name)
+                        break
                     queding.click()
                     tprint('请检查是否抢到课！！！: ', name)
                     time.sleep(2)
@@ -162,28 +148,48 @@ def search(driver, first_label_xpath, second_label_xpath=None, table_xpath=None,
             tprint('课程没有找到，请检查是否已经选到或者课程名输入错误：', name)
             break
 
-def core():
-    # options = ChromeOptions(); 
-    # options.add_argument("disable-infobars")
-    driver = webdriver.Chrome()
-    # driver = webdriver.Edge()
 
 
+class myThread (threading.Thread):
+    def core(self):
+        driver=self.driver
+        # options = ChromeOptions(); 
+        # options.add_argument("disable-infobars")
+        # driver = webdriver.Chrome()
+        # driver = webdriver.Edge()
+        driver.get('http://yjsxk.fudan.edu.cn/yjsxkapp/sys/xsxkappfudan/*default/index.do')
+        _, xuehao_input = safe_get_element_by_xpath(driver, xuehao_input_xpath, 1000)
+        xuehao_input.clear()
+        xuehao_input.send_keys(xuehao)
+        _, pwd_input = safe_get_element_by_xpath(driver, pwd_input_xpath, 1000)
+        pwd_input.clear()
+        pwd_input.send_keys(pwd)
 
-    driver.get('http://yjsxk.fudan.edu.cn/yjsxkapp/sys/xsxkappfudan/*default/index.do')
-    driver.find_element_by_xpath("/html/body/div/article[1]/section/div[4]/div[1]/input").clear() # 清楚文本
-    driver.find_element_by_xpath("/html/body/div/article[1]/section/div[4]/div[1]/input").send_keys("21210240419") # 模拟按键输入
-    driver.find_element_by_xpath("/html/body/div/article[1]/section/div[4]/div[2]/input").clear() # 清楚文本
-    driver.find_element_by_xpath("/html/body/div/article[1]/section/div[4]/div[2]/input").send_keys("zc960218fd") # 模拟按键输入
-    # get_image(driver)
-    time.sleep(1000)
-    input()
+        exit_button = None
+        image = get_image(driver)
+        yzm = self.ocr.classification(image)
+        _, yzm_input = safe_get_element_by_xpath(driver, yzm_input_xpath)
+        yzm_input.clear()
+        yzm_input.send_keys(yzm)
+        _, login_button = safe_get_element_by_xpath(driver, login_xpath)
 
-    turn = 0
-    while True:
+        # _, __ = safe_get_element_by_xpath(driver, '/html/body/div/article[2]/section[1]')
+        # js = "document.evaluate(\"/html/body/div/article[2]/section[1]\", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.style.display='none';"
+        # # 调用js脚本
+        # driver.execute_script(js)
+        # input()
+        login_button.click()
+        time.sleep(1)
         try:
-            if (turn % 100) == 0:
-                tprint(str(turn))
+            exit_button = driver.find_element_by_id('logoutSpan')
+        except:
+            exit_button = None
+        if exit_button is None:
+            self.close()
+
+
+        while True:
+            self.check_stop()
             if len(xwjck_ls) > 0:
                 search(driver=driver, first_label_xpath=xkzyk_xpath, second_label_xpath=xwjck_xpath, table_xpath=xwjck_table_xpath, course_names=xwjck_ls)
             if len(xwzyk_ls) > 0:
@@ -192,19 +198,42 @@ def core():
                 search(driver=driver, first_label_xpath=xkzyk_xpath, second_label_xpath=zyxxk_xpath, table_xpath=zyxxk_table_xpath, course_names=zyxxk_ls)
             if len(ggxxk_ls) > 0:
                 search(driver=driver, first_label_xpath=ggxxk_xpath, table_xpath=ggxxk_table_xpath, course_names=ggxxk_ls)
-        except:
-            pass
-        else:
-            turn = turn + 1
 
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.should_stop=False
+        options = ChromeOptions(); 
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--no-sandbox')
+        options.add_argument('window-size=1920x1080')
+        self.driver=webdriver.Chrome(options=options)
+        # self.driver.maximize_window()
+        self.ocr=ddddocr.DdddOcr()
+
+    def run(self):
+        self.core()
+    
+    def close(self):
+        self.should_stop=True
+    
+    def check_stop(self):
+        if not self.should_stop:
+            return
+        self.driver.close()
+        time.sleep(0.1)
+        exit()
 
 
 if __name__ == '__main__':
-    p1 = mp.Process(target=core, args=())
-    p2 = mp.Process(target=core, args=())
-    p1.start()
-    p2.start()
-    input()
+    while(True):
+        t1 = myThread()
+        t1.start()
+        t1.join(300)  # 300
+        print('try kill')
+        t1.close()
+        print('kill done')
+        time.sleep(0.1)
     exit()
 
 '''
@@ -215,4 +244,9 @@ pip3 install selenium
 查看ChromeDriver版本：chromedriver –version
 可能要更改安全设置
 chmod u+x ./chromedriver
+'''
+'''
+pip install flatbuffers
+pip3 install -i https://test.pypi.org/simple/ onnxruntime
+pip install ddddocr==1.4.2
 '''
