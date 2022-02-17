@@ -182,11 +182,6 @@ class myThread (threading.Thread):
         yzm_input.send_keys(yzm)
         _, login_button = safe_get_element_by_xpath(driver, login_xpath)
 
-        # _, __ = safe_get_element_by_xpath(driver, '/html/body/div/article[2]/section[1]')
-        # js = "document.evaluate(\"/html/body/div/article[2]/section[1]\", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.style.display='none';"
-        # # 调用js脚本
-        # driver.execute_script(js)
-        # input()
         login_button.click()
         time.sleep(1)
         try:
