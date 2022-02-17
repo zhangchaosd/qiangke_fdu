@@ -20,7 +20,7 @@ ggxxk_ls = [   # 公共选修课
 ]
 
 xuehao = '21210240419'
-pwd = 'zc960218fd'
+pwd = 'wwww'
 
 scale_factor = 2
 show_yzm = False
@@ -28,8 +28,8 @@ show_yzm = False
 xuehao_input_xpath = '/html/body/div/article[1]/section/div[4]/div[1]/input'  # 学号输入框
 pwd_input_xpath = '/html/body/div/article[1]/section/div[4]/div[2]/input'  # 密码输入框
 yzm_input_xpath = '/html/body/div/article[1]/section/div[4]/div[3]/input'  # 验证码输入框
-yzm_xpath = '/html/body/div/article[1]/section/div[4]/div[3]/img'   # 验证码图片
-login_xpath = '/html/body/div/article[1]/section/div[4]/button[2]'
+yzm_xpath = '/html/body/div/article[1]/section/div[4]/div[3]/img'  # 验证码图片
+login_xpath = '/html/body/div/article[1]/section/div[4]/button[2]'  # 登录按钮
 errmsg_xpath = '/html/body/div/article[1]/section/div[4]/button[1]'  # 错误信息
 
 xwggk_xpath = '/html/body/div/header/div/ul/li[1]/a'
