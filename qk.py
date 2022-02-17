@@ -22,6 +22,8 @@ ggxxk_ls = [   # 公共选修课
 xuehao = '21210240419'
 pwd = 'zc960218fd'
 
+scale_factor = 2
+show_yzm = False
 
 xuehao_input_xpath = '/html/body/div/article[1]/section/div[4]/div[1]/input'  # 学号输入框
 pwd_input_xpath = '/html/body/div/article[1]/section/div[4]/div[2]/input'  # 密码输入框
@@ -53,7 +55,7 @@ def tprint(*t):
     print(cur_time)
     print(*t)
 
-def safe_get_element_by_xpath(driver, xpath, try_times=30):
+def safe_get_element_by_xpath(driver, xpath, try_times=300):
     res = None
     fail_cnt = 0
     while(res is None):
@@ -80,13 +82,15 @@ def get_image(driver): # 对验证码所在位置进行定位，然后截取验�
     location = img.location
     print(location)
     size = img.size
-    left = location['x'] * 2
-    top = location['y'] * 2
-    right = left + size['width']  * 2
-    bottom = top + size['height'] * 2
+    left = location['x'] * scale_factor
+    top = location['y'] * scale_factor
+    right = left + size['width']  * scale_factor
+    bottom = top + size['height'] * scale_factor
 
     page_snap_obj = get_snap(driver)
     image_obj = page_snap_obj.crop((left, top, right, bottom))
+    if show_yzm:
+        image_obj.show()
     imgByteArr = io.BytesIO()
     image_obj.save(imgByteArr, format='PNG') # format: PNG / JPEG
     imgByteArr = imgByteArr.getvalue()
@@ -162,10 +166,11 @@ class myThread (threading.Thread):
         # driver = webdriver.Chrome()
         # driver = webdriver.Edge()
         driver.get('http://yjsxk.fudan.edu.cn/yjsxkapp/sys/xsxkappfudan/*default/index.do')
-        _, xuehao_input = safe_get_element_by_xpath(driver, xuehao_input_xpath, 1000)
+        time.sleep(2)
+        _, xuehao_input = safe_get_element_by_xpath(driver, xuehao_input_xpath, 2000)
         xuehao_input.clear()
         xuehao_input.send_keys(xuehao)
-        _, pwd_input = safe_get_element_by_xpath(driver, pwd_input_xpath, 1000)
+        _, pwd_input = safe_get_element_by_xpath(driver, pwd_input_xpath, 2000)
         pwd_input.clear()
         pwd_input.send_keys(pwd)
 
