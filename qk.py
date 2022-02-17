@@ -111,9 +111,13 @@ def search(driver, first_label_xpath, second_label_xpath=None, table_xpath=None,
     if res is False:
         return  # TODO
     height=1
+    try_times = 0
     while height==1:
         rows=table.find_elements_by_tag_name("tr")
         height = len(rows)  # TODO
+        try_times = try_times + 1
+        if try_times > 50:
+            exit()
     if second_label_xpath is None:  # 公共选修课课程名在第二列
         flag = 0
     else:
